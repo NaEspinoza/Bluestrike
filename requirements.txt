@@ -1,4 +1,4 @@
-rich
-fade
-bleak
-python-dotenv
+rich>=13.0.0
+fade>=1.4
+bleak>=0.21.0
+python-dotenv>=1.0.0

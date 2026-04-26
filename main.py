@@ -1,63 +1,72 @@
-import time 
+import time
 import os
 import asyncio
 
 from utils.logo import print_logo
-from utils.kick import _kick_
-from utils.scanner import main
+from utils.kick import _kick_, deauth_Method_1
+from utils.scanner import main as scan_main
 
 from rich import print
 from rich.prompt import Prompt
 from rich.console import Console
 
 console = Console()
-input = Prompt.ask
 
 modules = """[bright_white] [1] :mag: Scan for Bluetooth Devices
  [2] :satellite: Kick Out Bluetooth Devices
 [red] [Q] :door: Exit (Ctrl + c)
 """
 
+
 def Main_Modules():
-    print_logo()
-    print(modules)
+    while True:
+        print_logo()
+        print(modules)
+        user_choice = Prompt.ask("[cyan] :question: Enter your choice")
 
-    user_choice = input("[cyan] :question: Enter your choice ")
+        if user_choice == "1":
+            raw = Prompt.ask("[cyan] :clock1: Scan duration in seconds", default="10")
+            try:
+                scan_time = max(5, int(raw))
+            except ValueError:
+                scan_time = 10
 
-    if user_choice == "1":
-        mac_address = asyncio.run(main())
-        print("Selected MAC address:", mac_address)
-        
-        scan_again = input("[green] :question: Do you want to perform the scan again (y/n) ").lower() == "y"
-        if scan_again:
-            Main_Modules()
+            while True:
+                mac_address = asyncio.run(scan_main(timeout=scan_time))
+                if mac_address is None:
+                    break
+                print("Selected MAC address:", mac_address)
+                scan_again = Prompt.ask("[green] :question: Scan again? (y/n)").lower() == "y"
+                if not scan_again:
+                    break
 
-        kick_ard = input("[red] :rocket: Do you want to kick the user ").lower() == "y"
-        start_time = input("[red] :question: In how many seconds do you want to start the attack ")
-        
-        if kick_ard:
-            _kick_(mac_address, 600, 10, int(start_time))
+            if mac_address is None:
+                continue
+
+            kick_ard = Prompt.ask("[red] :rocket: Do you want to kick the user? (y/n)").lower() == "y"
+            if kick_ard:
+                start_time = Prompt.ask("[red] :question: In how many seconds do you want to start the attack")
+                _kick_(deauth_Method_1, mac_address, 600, 10, int(start_time))
+            else:
+                print(":door: Exiting...")
+
+        elif user_choice == "2":
+            mac_address = Prompt.ask("[red] :signal_strength: Enter the Mac Address")
+            start_time = Prompt.ask("[red] :question: In how many seconds do you want to start the attack")
+            _kick_(deauth_Method_1, mac_address, 600, 10, int(start_time))
+
+        elif user_choice.lower() == "q":
+            console.clear()
+            break
+
         else:
-            print(":door: Exiting...")
-    elif user_choice == "2":
-        mac_address = input("[red] :signal_strength: Enter the Mac Adress ")
-        start_time = input("[red] :question: In how many seconds do you want to start the attack ")
-        _kick_(mac_address, 600, 20, int(start_time))
-        
-    elif user_choice.lower() == "q":
-        console.clear() 
-        exit()
-    else:
-        print("[red] :warning: Invalid Option")
-        time.sleep(1)
-        Main_Modules()
+            print("[red] :warning: Invalid Option")
+            time.sleep(1)
 
 
 if __name__ == "__main__":
     try:
-        # Turns Bluetooth Adapter - ON
         os.system("rfkill unblock bluetooth")
-        # ----------------------------------
         Main_Modules()
     except KeyboardInterrupt:
         console.clear()
@@ -65,5 +74,5 @@ if __name__ == "__main__":
         exit()
     except Exception as e:
         console.clear()
-        print(f"[red] :warning: ERROR VALUE [{e} ]")
+        print(f"[red] :warning: ERROR VALUE [{e}]")
         exit()
